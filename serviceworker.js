@@ -1,11 +1,47 @@
-if ('serviceWorker' in navigator) {
-    // Register a service worker hosted at the root of the
-    // site using a more restrictive scope.
-    navigator.serviceWorker.register('/serviceworker.js', { scope: './' }).then(function (registration) {
-        console.log('Service worker registration succeeded:', registration);
-    }, /*catch*/ function (error) {
-        console.log('Service worker registration failed:', error);
-    });
-} else {
-    console.log('Service workers are not supported.');
-}
+const PRECACHE = 'precache-v1';
+const RUNTIME = 'runtime';
+
+// A list of local resources we always want to be cached.
+const PRECACHE_URLS = [
+    'index.html', // Auf Google Basics -- https://github.com/GoogleChrome/samples/blob/gh-pages/service-worker/basic/service-worker.js
+    'js/index.js',
+    'node_modules/framework7/css/framework7.bundle.min.css',
+    'node_modules/framework7/js/framework7.bundle.min.js',
+    'meineapp.webmanifest',
+];
+
+// The install handler takes care of precaching the resources we always need.
+self.addEventListener('install', event => {
+    event.waitUntil(
+        caches.open(PRECACHE)
+            .then(cache => cache.addAll(PRECACHE_URLS))
+            .then(self.skipWaiting())
+    );
+});
+
+// The fetch handler serves responses for same-origin resources from a cache.
+// If no response is found, it populates the runtime cache with the response
+// from the network before returning it to the page.
+self.addEventListener('fetch', event => {
+    // Skip cross-origin requests, like those for Google Analytics.
+    if (event.request.url.startsWith(self.location.origin)) {
+        event.respondWith(
+            caches.match(event.request).then(cachedResponse => {
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+
+                return caches.open(RUNTIME).then(cache => {
+                    return fetch(event.request)
+                        .then(response => {
+                            // Put a copy of the response in the runtime cache.
+                            return cache.put(event.request, response.clone()).then(() => {
+                                return response;
+                            });
+                        })
+                        .catch(cause => cause);
+                });
+            })
+        );
+    }
+});
