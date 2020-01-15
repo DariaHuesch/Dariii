@@ -12,9 +12,21 @@ function locationupdaten() {
     );
 }
 
-function callNumber(number) {
+function callNumberDaria(number) {
     if (!number)
-        number = "+4962141050"
+        number = "+4915739120651"
+    if (window.usingCordova && window.plugins.CallNumber) {
+        window.plugins.CallNumber.callNumber((result) => {
+            console.log("Number dialed")
+        }, (result) => {
+            alert("Unable to call number" + result)
+        }, number, true);
+    }
+}
+
+function callNumberMartin(number) {
+    if (!number)
+        number = "+4915739120651"
     if (window.usingCordova && window.plugins.CallNumber) {
         window.plugins.CallNumber.callNumber((result) => {
             console.log("Number dialed")
